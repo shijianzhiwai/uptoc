@@ -2,6 +2,7 @@ package engine
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ func pathCompatible(dirPath string) string {
 	if strings.Index(dirPath, OSPS) != -1 {
 		return dirPath
 	}
-	return strings.ReplaceAll(dir, "/", OSPS)
+	return strings.ReplaceAll(dirPath, "/", OSPS)
 }
 
 func addDirSuffix(dirPath string) string {
