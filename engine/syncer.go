@@ -27,7 +27,7 @@ func NewSyncer(uploadDriver uploader.Driver) *Syncer {
 
 // Sync uploads the to be upload objects to the cloud
 // and delete the not exist remote objects
-func (s *Syncer) Sync(localObjects []uploader.Object, saveRoot string) error {
+func (s *Syncer) Sync(localObjects []uploader.Object, saveRoot string, excludes []string) error {
 	remoteObjects, err := s.uploader.ListObjects(saveRoot)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func (s *Syncer) Sync(localObjects []uploader.Object, saveRoot string) error {
 	log.Printf("find %d local objects", len(localObjects))
 	log.Printf("find %d remote objects", len(remoteObjects))
 	log.Printf("compare the local files and the remote objects...")
-	s.compareObjects(localObjects, remoteObjects)
+	s.compareObjects(localObjects, remoteObjects, saveRoot, excludes)
 
 	log.Printf("found %d files to be uploaded, uploading...", len(s.tobeUploadedObjects))
 	for _, obj := range s.tobeUploadedObjects {
@@ -58,7 +58,7 @@ func (s *Syncer) Sync(localObjects []uploader.Object, saveRoot string) error {
 }
 
 // compareObjects compare local files with the remote objects
-func (s *Syncer) compareObjects(localObjects, remoteObjects []uploader.Object) {
+func (s *Syncer) compareObjects(localObjects, remoteObjects []uploader.Object, saveRoot string, excludes []string) {
 	for _, localObject := range localObjects {
 		if !s.objectExist(localObject, remoteObjects) {
 			localObject.Type = uploader.LocalObjectTypeAdded
@@ -73,6 +73,10 @@ func (s *Syncer) compareObjects(localObjects, remoteObjects []uploader.Object) {
 
 	// find the deleted objects
 	for _, remoteObject := range remoteObjects {
+		if shouldExclude(saveRoot, objectKey2Path(remoteObject.Key), excludes) {
+			continue
+		}
+
 		if s.objectExist(remoteObject, localObjects) {
 			continue
 		}

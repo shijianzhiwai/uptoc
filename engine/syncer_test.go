@@ -11,6 +11,8 @@ import (
 	"uptoc/uploader"
 )
 
+var testExcludes = make([]string, 0)
+
 func TestSync(t *testing.T) {
 	// init test data
 	files := map[string]string{
@@ -32,7 +34,7 @@ func TestSync(t *testing.T) {
 
 	// test
 	syncer := NewSyncer(&mockUploader{})
-	assert.NoError(t, syncer.Sync(localObjects, ""))
+	assert.NoError(t, syncer.Sync(localObjects, "", testExcludes))
 }
 
 func TestSync2(t *testing.T) {
@@ -45,11 +47,11 @@ func TestSync2(t *testing.T) {
 	}
 
 	s := NewSyncer(&mockUploader{listErr: fmt.Errorf("list error")})
-	assert.Error(t, s.Sync(objects, ""))
+	assert.Error(t, s.Sync(objects, "", testExcludes))
 
 	s = NewSyncer(&mockUploader{uploadErr: fmt.Errorf("upload error")})
-	assert.Error(t, s.Sync(objects, ""))
+	assert.Error(t, s.Sync(objects, "", testExcludes))
 
 	s = NewSyncer(&mockUploader{deleteErr: fmt.Errorf("delete error")})
-	assert.Error(t, s.Sync(objects, ""))
+	assert.Error(t, s.Sync(objects, "", testExcludes))
 }

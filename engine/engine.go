@@ -29,6 +29,13 @@ type Engine struct {
 
 // New returns a new engine.
 func New(conf Config, ud uploader.Driver) *Engine {
+
+	// windows path compatible.
+	conf.SaveRoot = pathCompatible(conf.SaveRoot)
+	for k, v := range conf.Excludes {
+		conf.Excludes[k] = pathCompatible(v)
+	}
+
 	return &Engine{
 		conf:     conf,
 		uploader: ud,
@@ -38,6 +45,7 @@ func New(conf Config, ud uploader.Driver) *Engine {
 // TailRun run the core logic with every path.
 func (e *Engine) TailRun(paths ...string) {
 	for _, path := range paths {
+		path = pathCompatible(path)
 		stat, err := os.Stat(path)
 		if err != nil {
 			log.Fatalln(err)
@@ -48,7 +56,7 @@ func (e *Engine) TailRun(paths ...string) {
 			continue
 		}
 
-		e.uploadFile(path, filepath.Join(e.conf.SaveRoot, stat.Name()))
+		e.uploadFile(path, path2ObjectKey(filepath.Join(e.conf.SaveRoot, stat.Name())))
 	}
 }
 
@@ -61,7 +69,7 @@ func (e *Engine) uploadDirectory(dirPath string) {
 	// directory sync
 	if e.conf.ForceSync {
 		s := NewSyncer(e.uploader)
-		if err := s.Sync(objects, e.conf.SaveRoot); err != nil {
+		if err := s.Sync(objects, e.conf.SaveRoot, e.conf.Excludes); err != nil {
 			log.Fatalln(err)
 		}
 		return
@@ -83,9 +91,7 @@ func (e *Engine) uploadFile(filePath, object string) {
 }
 
 func (e *Engine) loadLocalObjects(dirPath string) ([]uploader.Object, error) {
-	if !strings.HasSuffix(dirPath, "/") {
-		dirPath += "/"
-	}
+	dirPath = addDirSuffix(dirPath)
 
 	localObjects := make([]uploader.Object, 0)
 	visitor := func(filePath string, info os.FileInfo, err error) error {
@@ -93,13 +99,13 @@ func (e *Engine) loadLocalObjects(dirPath string) ([]uploader.Object, error) {
 			return err
 		}
 
-		if info.IsDir() || e.shouldExclude(dirPath, filePath) {
+		if info.IsDir() || shouldExclude(dirPath, filePath, e.conf.Excludes) {
 			return nil
 		}
 
 		localPath := strings.TrimPrefix(filePath, dirPath)
 		localObjects = append(localObjects, uploader.Object{
-			Key:      filepath.Join(e.conf.SaveRoot, localPath),
+			Key:      path2ObjectKey(filepath.Join(e.conf.SaveRoot, localPath)),
 			ETag:     fileutil.MD5Hex(filePath),
 			FilePath: filePath,
 		})
@@ -111,15 +117,4 @@ func (e *Engine) loadLocalObjects(dirPath string) ([]uploader.Object, error) {
 	}
 
 	return localObjects, nil
-}
-
-func (e *Engine) shouldExclude(dirPath, filePath string) bool {
-	parentPath := strings.TrimPrefix(dirPath, "./")
-	for _, ePath := range e.conf.Excludes {
-		if strings.HasPrefix(filePath, parentPath+strings.TrimPrefix(ePath, "/")) {
-			return true
-		}
-	}
-
-	return false
 }
