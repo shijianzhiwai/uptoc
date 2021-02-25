@@ -92,7 +92,7 @@ func (e *Engine) uploadFile(filePath, object string) {
 
 func (e *Engine) loadLocalObjects(dirPath string) ([]uploader.Object, error) {
 	dirPath = addDirSuffix(dirPath)
-
+	dirPath = trimDir(dirPath)
 	localObjects := make([]uploader.Object, 0)
 	visitor := func(filePath string, info os.FileInfo, err error) error {
 		if os.IsNotExist(err) {

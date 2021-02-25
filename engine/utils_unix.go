@@ -11,7 +11,7 @@ import (
 var OSPS = string(os.PathSeparator)
 
 func shouldExclude(dirPath, filePath string, excludes []string) bool {
-	parentPath := strings.TrimPrefix(dirPath, "."+OSPS)
+	parentPath := trimDir(dirPath)
 	for _, ePath := range excludes {
 		var exd = filepath.Dir(parentPath + addDirSuffix(ePath))
 		var fpd = filepath.Dir(filePath)
@@ -24,6 +24,10 @@ func shouldExclude(dirPath, filePath string, excludes []string) bool {
 
 func pathCompatible(dirPath string) string {
 	return dirPath
+}
+
+func trimDir(dirPath string) string {
+	return strings.TrimPrefix(dirPath, "."+OSPS)
 }
 
 func addDirSuffix(dirPath string) string {
